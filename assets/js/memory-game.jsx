@@ -90,7 +90,7 @@ class Memory extends React.Component {
 
   render() {
     let header = <div>
-        <h3><i><b>Memory game</b></i></h3>
+        <h2><i><b>Memory game</b></i></h2>
         <p><b>Clicks:</b> {this.state.numClicks} <button className="restart" onClick={() => this.restartGame()}>Restart</button></p>
       </div>;
 

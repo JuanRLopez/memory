@@ -7,3 +7,36 @@
     text-align: center;
 }
 
+.column {
+  float: left;
+  width: 25%;
+}
+
+.tile > button {
+  width: 100%;
+  height: 90px;
+}
+
+button, button:focus {
+  background-color: #838c89;
+  border: 0.1rem solid #838c89;
+}
+
+.correct, button:focus.correct {
+  background-color: #6282ff;
+  border: 0.1rem solid #6282ff;
+}
+
+.correct > h3 {
+  margin-bottom: 0px !important;
+}
+
+.not-correct > h3 {
+  margin-bottom: 0px !important;
+}
+
+.restart {
+  background-color: #6282ff;
+  border: 0.1rem solid #6282ff;
+  float: right;
+}

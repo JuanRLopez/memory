@@ -2,70 +2,57 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import _ from 'lodash';
 
-export default function game_init(root) {
-  ReactDOM.render(<Memory />, root);
+export default function game_init(root, channel) {
+  ReactDOM.render(<Memory channel={channel} />, root);
 }
 
 class Memory extends React.Component {
   constructor(props) {
     super(props);
-    this.setUpGame();
+
+    this.channel = props.channel;
+    this.state = {tiles: [], num_clicks: 0, tilesSelected: []};
+
+    this.channel.join()
+        .receive("ok", this.gotView.bind(this))
+        .receive("error", resp => {console.log("Unable to join", resp)});
   }
 
-  setUpGame() {
-    this.state = {
-      numClicks: 0,
-      numGuesses: 0,
-      selectedTiles: [],
-      tiles: []
-    };
-
-    let letters = _.shuffle(["A", "A", "B", "B", "C", "C", "D", "D", "E", "E", "F", "F", "G", "G", "H", "H"]);
-    let lettersLength = letters.length;
-
-    for(var i = 0; i < lettersLength; i++) {
-      this.state.tiles.push({
-        letter: letters.pop(), // the letter value of the tile.
-        state: false, // indicating that the tile is facing down.
-        isCorrect: false
-      });
-    }
+  gotView(view) {
+    console.log("new view", view);
+    this.setState(view.game);
   }
 
-  showTile(tileIndex) {
-    if(this.state.numGuesses != 2) {
-      let tile = this.state.tiles[tileIndex];
-      tile.state = !tile.state;
-      this.state.selectedTiles.push(tileIndex);
-      this.state.numClicks += 1;
-      this.state.numGuesses += 1;
-      this.setState(this.state);
+  // logic to handle a tile flip and the corresponding display scenarios
+  handleTile(tileIndex) {
+    this.state.tilesSelected.push(this.state.tiles[tileIndex])
+    if(this.state.tilesSelected.length == 2) {
 
-      let otherTile = this.state.tiles[this.state.selectedTiles[0]];
-
-      if(this.state.numGuesses == 2) {
-        if(tile.letter == otherTile.letter) {
-          this.state.numGuesses = 0;
-          this.state.selectedTiles = [];
-          tile.isCorrect = true;
-          otherTile.isCorrect = true;
-          this.setState(this.state);
-        } else {
-          window.setTimeout(() => this.badGuessHelper(tile, otherTile), 1000);
-        }
+      if(this.state.tilesSelected[0].letter == this.state.tilesSelected[1].letter) {
+        this.channel.push("handleTile", { index: tileIndex })
+            .receive("ok", this.gotView.bind(this));
       }
       else {
+        this.state.tiles[tileIndex].state = true;
         this.setState(this.state);
+
+        window.setTimeout(() => {
+          this.channel.push("handleTile", { index: tileIndex })
+              .receive("ok", this.gotView.bind(this));
+        }, 1000);
       }
+
+      this.state.tilesSelected = [];
+    }
+    else {
+      this.channel.push("handleTile", { index: tileIndex })
+          .receive("ok", this.gotView.bind(this));
     }
   }
 
-  badGuessHelper(tile, otherTile) {
-    tile.state = false;
-    otherTile.state = false;
-    this.state.numGuesses = 0;
-    this.state.selectedTiles = [];
-    this.setState(this.state);
+  restartGame() {
+    this.channel.push("restart", {})
+        .receive("ok", this.gotView.bind(this));
   }
 
   loadTiles() {
@@ -83,15 +70,9 @@ class Memory extends React.Component {
     return grid;
   }
 
-  restartGame() {
-    this.setUpGame();
-    this.setState(this.state);
-  }
-
   render() {
     let header = <div>
-        <h2><i><b>Memory game</b></i></h2>
-        <p><b>Clicks:</b> {this.state.numClicks} <button className="restart" onClick={() => this.restartGame()}>Restart</button></p>
+        <p><b>Clicks:</b> {this.state.num_clicks} <button className="restart" onClick={() => this.restartGame()}>Restart</button></p>
       </div>;
 
     let board = <div>
@@ -109,7 +90,7 @@ function Tile(params) {
   if(tile.state) {
     // render flipped tile.
     return <div className="tile">
-      <button className={(tile.isCorrect ? "correct": "not-correct")}>
+      <button className={(tile.is_correct ? "correct": "not-correct")}>
         <h3>{tile.letter}</h3>
       </button>
     </div>;
@@ -117,7 +98,7 @@ function Tile(params) {
   else {
     // render tile facing down.
     return <div className="tile">
-      <button onClick={() => root.showTile(params.tileIndex)}></button>
+      <button onClick={() => root.handleTile(params.tileIndex)}></button>
     </div>;
   }
 }

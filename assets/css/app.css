@@ -40,3 +40,9 @@ button, button:focus {
   border: 0.1rem solid #6282ff;
   float: right;
 }
+
+.center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
